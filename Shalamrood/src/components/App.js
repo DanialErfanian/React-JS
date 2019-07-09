@@ -9,20 +9,59 @@ import {Board} from "./board/Board";
 
 
 class App extends React.Component {
+    levelsOrg;
+
     constructor(props) {
         super(props);
         this.levels = this.props.levels;
+        for (let level of this.levels)
+            level.isDone = false;
         this.state = {...this.levels[0], level: 0};
+        for (let i = 0; i < this.state.cells.length; i++)
+            this.state.cells[i].handleRotate = () => this.handleRotate(i);
+        this.levelsOrg = JSON.parse(JSON.stringify(this.levels));
+        this.handleNext = this.handleNext.bind(this);
+        this.handleRestart = this.handleRestart.bind(this);
     }
 
+    resetState(level) {
+        for (let i = 0; i < this.levels[level].cells.length; i++)
+            this.levels[level].cells[i].handleRotate = () => this.handleRotate(i);
+        this.setState({...this.levels[level]});
+    }
+
+    handleRotate(i) {
+        let cell = this.state.cells[i];
+        cell.rotate = (cell.rotate + 1) % 4;
+        this.setState({"cells": this.state.cells});
+    }
+
+    handleRestart() {
+        console.log("handleRestart");
+        let level = this.state.level;
+        this.levels[level] = JSON.parse(JSON.stringify(this.levelsOrg[level]));
+        this.resetState(level);
+    }
+
+    handleNext() {
+        console.log("handleNext");
+        this.state.level++;
+        let level = this.state.level;
+        this.levels[level] = JSON.parse(JSON.stringify(this.levelsOrg[level]));
+        this.resetState(level);
+    }
 
     render() {
-        setCellActive(this.levels[this.state.level]);
-        console.log("rendering App");
-        console.log(this.levels[this.state.level]);
+        console.log("rendering app");
+        let level = this.levels[this.state.level];
+        setCellActive(level);
+        let isDone = level.isDone & this.state.level + 1 < this.levels.length;
         return <div className="game-container">
             <div className="game">
-                <Menu level={this.state.level}/>
+                <Menu level={this.state.level}
+                      isDone={isDone}
+                      handleRestart={this.handleRestart}
+                      handleNext={this.handleNext}/>
                 <Board rows={this.state.rows} cols={this.state.cols} cells={this.state.cells}/>
             </div>
         </div>;
@@ -39,12 +78,18 @@ let NEIGHBORS = {
 
 function getNeighbor(level, i, direction) {
     if (direction === 0)
-        return i + 1;
+        if (i % level.cols === level.cols - 1)
+            return -1;
+        else
+            return i + 1;
     if (direction === 1)
         return i + level.cols;
     if (direction === 3)
         return i - level.cols;
-    return i - 1;
+    if (i % level.cols === 0)
+        return -1;
+    else
+        return i - 1;
 }
 
 function getConnectedNeighbors(level, i) {
@@ -58,6 +103,7 @@ function getConnectedNeighbors(level, i) {
 
 
 function setCellActive(level) {
+    level.isDone = true;
     let cells = level.cells;
     let source = level.source;
     for (let i = 0; i < cells.length; i++) {
@@ -67,18 +113,19 @@ function setCellActive(level) {
     while (updated) {
         updated = false;
         for (let i = 0; i < cells.length; i++) {
-            if (!cells[i].active) {
-                for (let j of getConnectedNeighbors(level, i)) {
-                    if (i === 7)
-                        console.log(j);
-                    if (j < 0 || j >= cells.length)
-                        continue;
-                    if (cells[j].active && getConnectedNeighbors(level, j).includes(i)) {
+            for (let j of getConnectedNeighbors(level, i)) {
+                if (j < 0 || j >= cells.length) {
+                    level.isDone = false;
+                    continue;
+                }
+                if (getConnectedNeighbors(level, j).includes(i)) {
+                    if (!cells[i].active && cells[j].active) {
                         cells[i].active = true;
                         updated = true;
                         break;
                     }
-                }
+                } else
+                    level.isDone = false;
             }
         }
     }
