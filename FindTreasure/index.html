@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Find Treasure</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="style.css"/>
+    <style>
+
+    </style>
+    <script>
+        function handleMouseOut() {
+            document.getElementById("square").style.backgroundColor = "black";
+
+        }
+
+        let level = 0;
+        let levels;
+        var xhr = new XMLHttpRequest();
+        var url = "levels.json";
+        console.log(url);
+        xhr.open("GET", url, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                levels = JSON.parse(xhr.responseText).levels;
+                console.log(levels);
+            }
+        };
+        xhr.send();
+
+        function reload(x, y) {
+            if (level >= levels.length) {
+                document.getElementById("square").style.backgroundColor = "white";
+                document.getElementById("level").innerText = "You won!";
+
+                return 100;
+            }
+
+            document.getElementById("level").innerText = "Level " + level.toString();
+            let dist = Math.abs(x - levels[level][0]) + Math.abs(y - levels[level][1]);
+            let col = 255 - dist / 2;
+            document.getElementById("square").style.backgroundColor = "rgb(" +
+                col.toString() + ", " +
+                col.toString() + ", " +
+                col.toString() + " " +
+                ")";
+            return dist;
+        }
+
+        function handleMove(event) {
+            var x = event.offsetX;
+            var y = event.offsetY;
+            let dist = reload(x, y);
+            var coor = "X coords: " + x + ", Y coords: " + y + "<br>" + dist;
+            //document.getElementById("log").innerHTML = coor;
+            if (dist < 10) {
+                level++;
+                reload(x, y);
+            }
+        }
+
+
+    </script>
+</head>
+
+<body bgcolor="#E6E6FA">
+
+<div id="level"></div>
+<div id="square" onmouseleave="handleMouseOut()" onmousemove="handleMove(event)"></div>
+
+</body>
+</html>
